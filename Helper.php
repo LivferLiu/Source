@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 助手类
  */
@@ -84,6 +85,7 @@ class Helper
         }
         return $ret;
     }
+
     /**
      * 判断字符串是utf-8 还是gb2312
      * @param unknown $str
@@ -102,14 +104,338 @@ class Helper
         } else {
             $option = "gb2312";
         }
-        if(preg_match($preg[$default],$str)){
+        if (preg_match($preg[$default], $str)) {
             return $option;
         }
-        $str = @iconv($default,$option,$str);
+        $str = @iconv($default, $option, $str);
         //不能转成$option 说明原来的不是default
-        if(empty($str)){
+        if (empty($str)) {
             return $option;
         }
         return $default;
+    }
+
+    /**
+     * utf-8和gb2312自动转化
+     * @param unknown $string
+     * @param string $outEncoding
+     * @return unknown|string
+     */
+    public static function safeEncoding($string, $outEncoding = "UTF-8")
+    {
+        $encoding = "UTF-8";
+        for ($i = 0; $i < strlen($string); $i++) {
+            if (ord($string{$i}) < 128) {
+                continue;
+            }
+            if ((ord($string{$i}) & 224) == 224) {
+                //第一个字节判断通过
+                $char = $string{++$i};
+                if ((ord($char) & 128) == 128) {
+                    //第二个字节判断通过
+                    $char = $string{++$i};
+                    if ((ord($char) & 128) == 128) {
+                        $encoding = "UTF-8";
+                        break;
+                    }
+                }
+            }
+            if (ord($string{$i} & 192) == 192) {
+                //第一字节判断通过
+                $char = $string{++$i};
+                if ((ord($char) & 128) == 128) {
+                    //第二个字节判断通过
+                    $encoding = "GB2312";
+                    break;
+                }
+            }
+        }
+        if (strtoupper($outEncoding) == $encoding)
+            return $string;
+        else
+            return @iconv($encoding, $outEncoding, $string);
+    }
+
+    /**
+     * 返回二维数组中某个键名的所有值
+     * @param input $array
+     * @param string $key
+     * @return array
+     */
+    public static function array_key_values($array = array(), $key = '')
+    {
+        $ret = array();
+        foreach ((array)$array as $k => $value) {
+            $ret[$k] = $value[$key];
+        }
+        return $ret;
+    }
+
+    /**
+     * 判断 文件/目录 是否可写（取代系统自带的 is_writeable 函数）
+     * @param string $file 文件/目录
+     * @return boolean
+     */
+    public static function isWriteAble($file)
+    {
+        if (is_dir($file)) {
+            $dir = $file;
+            if ($fp = @fopen("$dir/test.txt", 'w')) {
+                @fclose($fp);
+                @unlink("$dir/test.txt");
+                $write_able = 1;
+            } else {
+                $write_able = 0;
+            }
+        } else {
+            if ($fp = @fopen($file, 'a+')) {
+                @fclose($fp);
+                $write_able = 1;
+            } else {
+                $write_able = 0;
+            }
+        }
+        return $write_able;
+    }
+
+    /**
+     * 格式化单位
+     */
+    public static function byteFormat($size, $dec = 2)
+    {
+        $a = array('B', 'KB', 'MB', 'GB', 'TB', 'PB');
+        $pos = 0;
+        while ($size > 1024) {
+            $size /= 1024;
+            $pos++;
+        }
+        return round($size, $dec) . " " . $a[$pos];
+    }
+
+    /**
+     * 下拉框，单选按钮 自动选择
+     *
+     * @param $string 输入字符
+     * @param $param  条件
+     * @param $type   类型
+     * selected checked
+     * @return string
+     */
+    public static function selected($string, $param, $type = "select")
+    {
+        $true = false;
+        if (is_array($param)) {
+            $true = in_array($string, $param);
+        } elseif ($string == $param) {
+            $true = $true;
+        }
+        $return = '';
+        if ($true) {
+            $return = $type == 'select' ? 'selected = "selected"' : 'checked="checked"';
+        }
+        echo $return;
+    }
+
+    /**
+     * 下载远程图片
+     * @param string $url 图片的绝对url
+     * @param string $filePath 文件的完整路径（例如/www/images/test） ，此函数会自动根据图片url和http头信息确定图片的后缀名
+     * @param string $fileName 要保存的文件名(不含扩展名)
+     * @return mixed 下载成功返回一个描述图片信息的数组，下载失败则返回false
+     */
+    public static function downloadImage($url, $filePath, $fileName)
+    {
+        //服务器返回的头信息
+        $responseHeaders = array();
+        //原始图片名
+        $originalFileName = '';
+        //图片的后缀名
+        $ext = '';
+        $ch = curl_init($url);
+        //设置curl_exec返回的值包含Http头
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        //设置curl_exec返回的值包含Http内容
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        //设置抓取跳转(http 301,302)后的页面
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        //设置最多的http重定向数量
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);
+
+        //服务器返回的数据(包括http的头信息和内容)
+        $html = curl_exec($ch);
+        //获取此次抓取的相关信息
+        $httpInfo = curl_getinfo($ch);
+        if ($html !== false) {
+            //分离response的header和body，由于服务器可能使用了302跳转，所以此处需要将字符串分离为 2
+            $httpArr = explode("\r\n\r\n", $html, 2 + $httpInfo['redirect_count']);
+            //倒数第二段是服务器最后一次response的http头
+            $header = $httpArr[count($httpArr) - 2];
+            //倒数第一段是服务器最后一次response的内容
+            $body = $httpArr[count($httpArr) - 1];
+            $header .= "\r\n";
+
+            //获取租后一次response的header的信息
+            preg_match_all('/([a-z0-9-_]+):\s*([^\r\n]+)\r\n/i', $header, $matches);
+            if (!empty($matches) && count($matches) == 3 && !empty($matches[1]) && !empty($matches[2])) {
+                for ($i = 0; $i < count($matches[1]); $i++) {
+                    if (array_key_exists($i, $matches[2])) {
+                        $responseHeaders[$matches[1][$i]] = $matches[2][$i];
+                    }
+                }
+            }
+            //获取图片后缀名
+            if (0 < preg_match('{(?:[^\/\\\]+)\.(jpg|jpeg|gif|png|bmp)$}i', $url, $matches)) {
+                $originalFileName = $matches[0];
+                $ext = $matches[1];
+            } else {
+                if (array_key_exists('Content-Type', $responseHeaders)) {
+                    if (0 < preg_match('\'{image/(\w+)}i\'', $responseHeaders['Content-Type'], $extMatches)) {
+                        $ext = $extMatches[1];
+                    }
+                }
+            }
+            //保存文件
+            if (!empty($ext)) {
+                //如果目录不存在,则先创建目录
+                if (!is_dir($filePath)) {
+                    mkdir($filePath, 0777, true);
+                }
+                $filePath = '/' . $fileName . ".$ext";
+                $localFile = fopen($filePath . 'w');
+                if (false !== $localFile) {
+                    if (false !== fwrite($localFile, $body)) {
+                        fclose($localFile);
+                        $sizeInfo = getimagesize($filePath);
+                        return array('filePath' => realpath($filePath), 'width' => $sizeInfo[0], 'height' => $sizeInfo[1], 'originalFileName' => $originalFileName, 'fileName' => pathinfo($filePath, PATHINFO_BASENAME));
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 查找ip是否在某个段位里面
+     * @param string $ip 要查询的ip
+     * @param $arrIP     禁止的ip
+     * @return boolean
+     */
+    public static function ipAccess($ip = '0.0.0.0', $arrIp = array())
+    {
+        $access = true;
+        $ip && $arr_cur_ip = explode('.',$ip);
+        foreach ((array)$arrIp as $key => $value) {
+            if($value == '*.*.*.*'){
+                $access = false; //禁止所有
+                break;
+            }
+            $tmp_arr = explode('.',$value);
+            if(($arr_cur_ip[0] == $tmp_arr[0]) && ($arr_cur_ip[1] == $tmp_arr[1])){
+                //前两段相同
+                if(($arr_cur_ip[2] == $tmp_arr[2]) || $tmp_arr[2] == '*'){
+                    //第三段为*或者相同
+                    if(($arr_cur_ip[3] == $tmp_arr[3]) || $tmp_arr[3] == '*'){
+                        //第四段为*或者相同
+                        $access = false; //在禁止ip列,则禁止访问
+                        break;
+                    }
+                }
+            }
+        }
+        return $access;
+    }
+    /**
+     * @param string $string 原文或者密文
+     * @param string $operation 操作(ENCODE | DECODE), 默认为 DECODE
+     * @param string $key 密钥
+     * @param int $expiry 密文有效期, 加密时候有效， 单位 秒，0 为永久有效
+     * @return string 处理后的 原文或者 经过 base64_encode 处理后的密文
+     *
+     * @example
+     *
+     * $a = authcode('abc', 'ENCODE', 'key');
+     * $b = authcode($a, 'DECODE', 'key');  // $b(abc)
+     *
+     * $a = authcode('abc', 'ENCODE', 'key', 3600);
+     * $b = authcode('abc', 'DECODE', 'key'); // 在一个小时内，$b(abc)，否则 $b 为空
+     */
+    public static function authCode($string,$operation='DECODE',$key='',$expiry=3600)
+    {
+        // 随机密钥长度 取值 0-32;
+        // 加入随机密钥，可以令密文无任何规律，即便是原文和密钥完全相同，加密结果也会每次不同，增大破解难度。
+        // 取值越大，密文变动规律越大，密文变化 = 16 的 $ckey_length 次方
+        // 当此值为 0 时，则不产生随机密钥
+        $ckey_length = 4;
+        $key = md5($key ? $key : 'key');
+        $keya = md5(substr($key, 0, 16));
+        $keyb = md5(substr($key, 16, 16));
+        $keyc = $ckey_length ? ($operation == 'DECODE' ? substr($string, 0, $ckey_length) : substr(md5(microtime()), -$ckey_length)) : '';
+
+        $cryptkey = $keya . md5($keya . $keyc);
+        $key_length = strlen($cryptkey);
+
+        $string = $operation == 'DECODE' ? base64_decode(substr($string, $ckey_length)) : sprintf('%010d', $expiry ? $expiry + time() : 0) . substr(md5($string . $keyb), 0, 16) . $string;
+        $string_length = strlen($string);
+
+        $result = '';
+        $box = range(0, 255);
+
+        $rndkey = array();
+        for ($i = 0; $i <= 255; $i++) {
+            $rndkey[$i] = ord($cryptkey[$i % $key_length]);
+        }
+
+        for ($j = $i = 0; $i < 256; $i++) {
+            $j = ($j + $box[$i] + $rndkey[$i]) % 256;
+            $tmp = $box[$i];
+            $box[$i] = $box[$j];
+            $box[$j] = $tmp;
+        }
+
+        for ($a = $j = $i = 0; $i < $string_length; $i++) {
+            $a = ($a + 1) % 256;
+            $j = ($j + $box[$a]) % 256;
+            $tmp = $box[$a];
+            $box[$a] = $box[$j];
+            $box[$j] = $tmp;
+            $result .= chr(ord($string[$i]) ^ ($box[($box[$a] + $box[$j]) % 256]));
+        }
+
+        if ($operation == 'DECODE') {
+            if ((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26) . $keyb), 0, 16)) {
+                return substr($result, 26);
+            } else {
+                return '';
+            }
+        } else {
+            return $keyc . str_replace('=', '', base64_encode($result));
+        }
+    }
+    /**
+     * 取得输入目录所包含的所有目录和文件
+     * 以关联数组形式返回
+     * 目录路径 $dir
+     */
+    public static function deepScanDir($dir)
+    {
+        $fileArr = array();
+        $dirArr = array();
+        $dir = rtrim($dir.'//');
+        if(is_dir($dir)){
+            $dirHandle = opendir($dir);
+            while(false !== ($fileName = readdir($dirHandle))){
+                $subFile = $dir . DIRECTORY_SEPARATOR . $fileName;
+                if(is_file($subFile)){
+                    $fileArr[] = $subFile;
+                }elseif(is_dir($subFile) && str_repeat('.','',$fileName) != ''){
+                    $dirArr[] = $subFile;
+                    $arr = self::deepScanDir($subFile);
+                    $dirArr = array_merge($dirArr,$arr['dir']);
+                    $fileArr = array_merge($fileArr, $arr['file']);
+                }
+            }
+            closedir($dirHandle);
+        }
+        return array('dir' => $dirArr, 'file' => $fileArr);
     }
 }
