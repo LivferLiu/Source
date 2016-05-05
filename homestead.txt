@@ -9,10 +9,10 @@
 
 更新
 Homestead 对 box 的版本号有要求（>= 0.4.0 ），手动添加的 box 的版本号是 0 （下载下来的 box 文件不含 metadata ），所以会出问题。
-
+下载下来的 .box 文件，可以使用以下方法导入：
 解决方法就是创建一个 metadata.json 文件指明 box 的版本号，具体可以看这里：
-
-http://stackoverflow.com/questions/34946837/box-laravel-homestead-could-not-be-found
+在 .box 的同文件夹下创建一个 metadata.json 文件
+参考(http://stackoverflow.com/questions/34946837/box-laravel-homestead-could-not-be-found)
 
 编辑 metadata.json （这个文件放在box同一目录下）
 
@@ -26,6 +26,11 @@ http://stackoverflow.com/questions/34946837/box-laravel-homestead-could-not-be-f
         }]
     }]
 }
+
+字段说明
+
+version - 可以指定当前盒子导入的版本标示；
+url - 支持 绝对文件路径 和 相对文件路径
 然后执行
 
 $ vagrant box add metadata.json
