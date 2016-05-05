@@ -29,10 +29,11 @@ class Helper
     }
 
     /**
-     *切割utf-8格式的字符串(一个汉字或者字符占一个字节)
+     * 切割utf-8格式的字符串(一个汉字或者字符占一个字节)
      * @param $string
      * @param $length
      * @param string $etc
+     * @return string
      */
     public static function truncateUtf8String($string, $length, $etc = '...')
     {
@@ -40,7 +41,7 @@ class Helper
         $string = html_entity_decode(trim(strip_tags($string)), ENT_QUOTES, 'UTF-8');
         $strlen = strlen($string);
         for ($i = 0; (($i < $strlen) && ($length > 0)); $i++) {
-            $number = strops(str_pad(decbin(ord(substr($string, $i, 1))), 8, '0', STR_PAD_LEFT), '0');
+            $number = strpos(str_pad(decbin(ord(substr($string, $i, 1))), 8, '0', STR_PAD_LEFT), '0');
             if ($number) {
                 if ($length < 1.0) {
                     break;
@@ -227,7 +228,7 @@ class Helper
         if (is_array($param)) {
             $true = in_array($string, $param);
         } elseif ($string == $param) {
-            $true = $true;
+            $true = true;
         }
         $return = '';
         if ($true) {
@@ -301,7 +302,7 @@ class Helper
                     mkdir($filePath, 0777, true);
                 }
                 $filePath = '/' . $fileName . ".$ext";
-                $localFile = fopen($filePath . 'w');
+                $localFile = fopen($filePath,'w');
                 if (false !== $localFile) {
                     if (false !== fwrite($localFile, $body)) {
                         fclose($localFile);
@@ -323,6 +324,7 @@ class Helper
     public static function ipAccess($ip = '0.0.0.0', $arrIp = array())
     {
         $access = true;
+        $arr_cur_ip = array();
         $ip && $arr_cur_ip = explode('.',$ip);
         foreach ((array)$arrIp as $key => $value) {
             if($value == '*.*.*.*'){
@@ -427,7 +429,7 @@ class Helper
                 $subFile = $dir . DIRECTORY_SEPARATOR . $fileName;
                 if(is_file($subFile)){
                     $fileArr[] = $subFile;
-                }elseif(is_dir($subFile) && str_repeat('.','',$fileName) != ''){
+                }elseif(is_dir($subFile) && str_replace('.','',$fileName) != ''){
                     $dirArr[] = $subFile;
                     $arr = self::deepScanDir($subFile);
                     $dirArr = array_merge($dirArr,$arr['dir']);
@@ -437,5 +439,272 @@ class Helper
             closedir($dirHandle);
         }
         return array('dir' => $dirArr, 'file' => $fileArr);
+    }
+
+    /**
+     * 取得输入目录所包含的所有文件
+     * 以数组形式返回
+     * @param $dir
+     */
+    public static function getDirFiles($dir)
+    {
+        if(is_file($dir)){
+            return array($dir);
+        }
+        $files = array();
+        if(is_dir($dir) && ($dir_handle = opendir($dir)) !== false){
+            $ds = DIRECTORY_SEPARATOR;
+            while(($fileName = readdir($dir_handle))!==false){
+                if($fileName == '.' || $fileName == '..'){
+                    continue;
+                }
+                $fileType = filetype($dir.$ds.$fileName);
+                if($fileType == 'dir'){
+                    $files = array_merge($files,self::getDirFiles($dir.$ds.$fileName));
+                }elseif($fileType == 'file'){
+                    $files[] = $dir.$ds.$fileName;
+                }
+            }
+            closedir($dir_handle);
+        }
+        return $files;
+    }
+
+    /**
+     * 删除文件夹及其文件夹下的所有文件
+     * @param $dir
+     * @return bool
+     */
+    public static function delDir($dir)
+    {
+        if(!is_dir($dir)) return false;
+        //先删除目录下的文件
+        $handle = opendir($dir);
+        while($file = readdir($handle)){
+            if($file != '.' && $file != '..'){
+                $filePath = $dir.DIRECTORY_SEPARATOR.$file;
+                if(!is_dir($filePath)){
+                    unlink($filePath);
+                }else{
+                    self::delDir($filePath);
+                }
+            }
+        }
+        closedir($handle);
+        if(rmdir($dir)){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    /**
+     * 页面跳转
+     * @param $url
+     */
+    public static function headerUrl($url)
+    {
+        echo "<script type='text/javascript'>location.href='{$url}';</script>";
+        exit;
+    }
+    
+    /**
+     * JS弹窗并且跳转
+     * @param $message
+     * @param $url
+     */
+    public static function alertLocation($message,$url)
+    {
+        echo "<script type='text/javascript'>alert('$message');location.href='$url';</script>";
+        exit;
+    }
+
+    /**
+     * JS弹窗返回
+     * @param $message
+     */
+    public static function alertBack($message)
+    {
+        echo "<script type='text/javascript'>alert('$message');history.back();</script>";
+        exit;
+    }
+
+    /**
+     * JS弹窗关闭
+     * @param $message
+     */
+    public static function alertClose($message)
+    {
+        echo "<script type='text/javascript'>alert('$message');close();</script>";
+        exit;
+    }
+
+    /**
+     * JS弹窗
+     * @param $message
+     */
+    public static function alert($message)
+    {
+        echo "<script type='text/javascript'>alert('$message');</script>";
+        exit;
+    }
+
+    /**
+     * html过滤
+     * @param array|object $data
+     * @return mixed
+     */
+    public static function htmlString($data)
+    {
+        $string = '';
+        if(is_array($data)){
+            foreach ($data as $key => $value) {
+                $string[$key] = self::htmlString($value);
+            }
+        }elseif(is_object($data)){
+            foreach ($data as $key => $value) {
+                $string->$key = self::htmlString($value);
+            }
+        }else{
+            $string = htmlspecialchars($data);
+        }
+        return $string;
+    }
+
+    /**
+     * 数据库输入过滤
+     * @param string $data
+     * @return string
+     */
+    public static function mysqlString($data)
+    {
+        $data = trim($data);
+        return !get_magic_quotes_gpc() ? addslashes($data) : $data;
+    }
+
+    /**
+     * 清理session
+     */
+    public static function clearSession()
+    {
+        if(session_start()){
+            session_destroy();
+        }
+    }
+
+    /**
+     *获取真实IP
+     * @return null|string
+     */
+    public static function getRealIp()
+    {
+        static $realIp = null;
+        if($realIp !== null) return $realIp;
+        if(isset($_SERVER)){
+            if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
+                $arr = explode(',',$_SERVER['HTTP_X_FORWARDED_FOR']);
+                foreach ($arr as $ip) {
+                    $ip = trim($ip);
+                    if($ip != 'unknown'){
+                        $realIp = $ip;
+                        break;
+                    }
+                }
+            }elseif(isset($_SERVER['HTTP_CLIENT_IP'])){
+                $realIp = $_SERVER['HTTP_CLIENT_IP'];
+            }else{
+                $realIp = '0.0.0.0';
+            }
+        }else{
+            if(getenv('HTTP_X_FORWARDED_FOR')){
+                $realIp = $_SERVER['HTTP_X_FORWARDED_FOR'];
+            }elseif(getenv('HTTP_CLIENT_IP')){
+                $realIp = $_SERVER['HTTP_CLIENT_IP'];
+            }else{
+                $realIp = getenv('REMOTE_ADDR');
+            }
+        }
+        preg_match('/[\d\.]{7,15}/',$realIp,$onlineIp);
+        $realIp = !empty($onlineIp[0]) ? $onlineIp[0] : '0.0.0.0';
+        return $realIp;
+    }
+
+    /**
+     * 图片等比例缩放
+     * @param resource $im 图片资源
+     * @param int $maxWidth 最大高度
+     * @param int $maxHeight 最大宽度
+     * @param string $name 生成文件名称
+     * @param string $fileType 生成文件类型
+     */
+    public static function resizeImage($im, $maxWidth, $maxHeight, $name, $fileType)
+    {
+        //图像宽度
+        $pic_width = imagesx($im);
+        //图像高度
+        $pic_height = imagesy($im);
+        $resize_width_tag = $resize_height_tag = false;
+        if( ($maxWidth && $pic_width > $maxWidth) || ($maxHeight && $pic_height > $maxHeight)){
+            $width_ratio = $height_ratio = $ratio = '';
+            if($maxWidth && $pic_width > $maxWidth){
+                $width_ratio = $maxWidth / $pic_width;
+                $resize_width_tag = true;
+            }
+            if($maxHeight && $pic_height > $maxHeight){
+                $height_ratio = $maxHeight / $pic_height;
+                $resize_height_tag = true;
+            }
+            if($resize_width_tag && $resize_height_tag){
+                if($width_ratio < $height_ratio){
+                    $ratio = $width_ratio;
+                }else{
+                    $ratio = $height_ratio;
+                }
+            }
+            if($resize_width_tag && !$resize_height_tag) $ratio = $width_ratio;
+            if($resize_height_tag && !$resize_width_tag) $ratio = $height_ratio;
+            $new_width = $pic_width * $ratio;
+            $new_height = $pic_height * $ratio;
+            if(function_exists("imagecopyresampled")){
+                $new_im = imagecreatetruecolor($new_width,$new_height);
+                imagecopyresampled($new_im,$im,0,0,0,0,$new_width,$new_height,$pic_width,$pic_height);
+            }else{
+                $new_im = imagecreatetruecolor($new_width,$new_height);
+                imagecopyresized($new_im,$im,0,0,0,0,$new_width,$new_height,$pic_width,$pic_height);
+            }
+            $name = $name.$fileType;
+            imagejpeg($new_im,$name);
+            imagedestroy($new_im);
+        }else{
+            $name = $name.$fileType;
+            imagejpeg($im,$name);
+        }
+    }
+
+    /**
+     * 下载文件
+     * @param $filePath
+     */
+    public static function downFile($filePath)
+    {
+        $filePath = iconv('utf-8','gb2312',$filePath);
+        if(!file_exists($filePath)){
+            exit('文件不存在!');
+        }
+        $fileName = basename($filePath);
+        $fileSize = filesize($filePath);
+        $fp = fopen($filePath,'r');
+        header("Content-type:application/octet-stream");
+        header("Accept-Range:bytes");
+        header("Accept-Length:{$fileSize}");
+        header("Content-Disposition: attachment;filename={$fileName}");
+        $buffer = 1024;
+        $fileCount = 0;
+        while(!feof($fp) && ($fileSize-$fileCount > 0)){
+            $fileData = fread($fp,$buffer);
+            $fileCount += $buffer;
+            echo $fileData;
+        }
+        fclose($fp);
     }
 }
