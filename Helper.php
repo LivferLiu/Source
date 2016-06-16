@@ -707,4 +707,23 @@ class Helper
         }
         fclose($fp);
     }
+
+    
+/**
+ * 通过Key排序
+ * @param $array
+ * @param $field
+ * @param bool $desc
+ * @return mixed
+ */
+function sortArrByField(&$array, $field, $desc = true)
+{
+    $fieldArr = array();
+    foreach ($array as $k => $v) {
+        $fieldArr[$k] = $v[$field];
+    }
+    $sort = $desc == false ? SORT_ASC : SORT_DESC;
+    array_multisort($fieldArr, $sort, $array);
+    return $array;
+}
 }
