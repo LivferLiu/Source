@@ -302,7 +302,7 @@ class Helper
                     mkdir($filePath, 0777, true);
                 }
                 $filePath = '/' . $fileName . ".$ext";
-                $localFile = fopen($filePath,'w');
+                $localFile = fopen($filePath, 'w');
                 if (false !== $localFile) {
                     if (false !== fwrite($localFile, $body)) {
                         fclose($localFile);
@@ -325,18 +325,18 @@ class Helper
     {
         $access = true;
         $arr_cur_ip = array();
-        $ip && $arr_cur_ip = explode('.',$ip);
+        $ip && $arr_cur_ip = explode('.', $ip);
         foreach ((array)$arrIp as $key => $value) {
-            if($value == '*.*.*.*'){
+            if ($value == '*.*.*.*') {
                 $access = false; //禁止所有
                 break;
             }
-            $tmp_arr = explode('.',$value);
-            if(($arr_cur_ip[0] == $tmp_arr[0]) && ($arr_cur_ip[1] == $tmp_arr[1])){
+            $tmp_arr = explode('.', $value);
+            if (($arr_cur_ip[0] == $tmp_arr[0]) && ($arr_cur_ip[1] == $tmp_arr[1])) {
                 //前两段相同
-                if(($arr_cur_ip[2] == $tmp_arr[2]) || $tmp_arr[2] == '*'){
+                if (($arr_cur_ip[2] == $tmp_arr[2]) || $tmp_arr[2] == '*') {
                     //第三段为*或者相同
-                    if(($arr_cur_ip[3] == $tmp_arr[3]) || $tmp_arr[3] == '*'){
+                    if (($arr_cur_ip[3] == $tmp_arr[3]) || $tmp_arr[3] == '*') {
                         //第四段为*或者相同
                         $access = false; //在禁止ip列,则禁止访问
                         break;
@@ -346,6 +346,7 @@ class Helper
         }
         return $access;
     }
+
     /**
      * @param string $string 原文或者密文
      * @param string $operation 操作(ENCODE | DECODE), 默认为 DECODE
@@ -361,7 +362,7 @@ class Helper
      * $a = authcode('abc', 'ENCODE', 'key', 3600);
      * $b = authcode('abc', 'DECODE', 'key'); // 在一个小时内，$b(abc)，否则 $b 为空
      */
-    public static function authCode($string,$operation='DECODE',$key='',$expiry=3600)
+    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 3600)
     {
         // 随机密钥长度 取值 0-32;
         // 加入随机密钥，可以令密文无任何规律，即便是原文和密钥完全相同，加密结果也会每次不同，增大破解难度。
@@ -413,6 +414,7 @@ class Helper
             return $keyc . str_replace('=', '', base64_encode($result));
         }
     }
+
     /**
      * 取得输入目录所包含的所有目录和文件
      * 以关联数组形式返回
@@ -422,17 +424,17 @@ class Helper
     {
         $fileArr = array();
         $dirArr = array();
-        $dir = rtrim($dir.'//');
-        if(is_dir($dir)){
+        $dir = rtrim($dir . '//');
+        if (is_dir($dir)) {
             $dirHandle = opendir($dir);
-            while(false !== ($fileName = readdir($dirHandle))){
+            while (false !== ($fileName = readdir($dirHandle))) {
                 $subFile = $dir . DIRECTORY_SEPARATOR . $fileName;
-                if(is_file($subFile)){
+                if (is_file($subFile)) {
                     $fileArr[] = $subFile;
-                }elseif(is_dir($subFile) && str_replace('.','',$fileName) != ''){
+                } elseif (is_dir($subFile) && str_replace('.', '', $fileName) != '') {
                     $dirArr[] = $subFile;
                     $arr = self::deepScanDir($subFile);
-                    $dirArr = array_merge($dirArr,$arr['dir']);
+                    $dirArr = array_merge($dirArr, $arr['dir']);
                     $fileArr = array_merge($fileArr, $arr['file']);
                 }
             }
@@ -448,21 +450,21 @@ class Helper
      */
     public static function getDirFiles($dir)
     {
-        if(is_file($dir)){
+        if (is_file($dir)) {
             return array($dir);
         }
         $files = array();
-        if(is_dir($dir) && ($dir_handle = opendir($dir)) !== false){
+        if (is_dir($dir) && ($dir_handle = opendir($dir)) !== false) {
             $ds = DIRECTORY_SEPARATOR;
-            while(($fileName = readdir($dir_handle))!==false){
-                if($fileName == '.' || $fileName == '..'){
+            while (($fileName = readdir($dir_handle)) !== false) {
+                if ($fileName == '.' || $fileName == '..') {
                     continue;
                 }
-                $fileType = filetype($dir.$ds.$fileName);
-                if($fileType == 'dir'){
-                    $files = array_merge($files,self::getDirFiles($dir.$ds.$fileName));
-                }elseif($fileType == 'file'){
-                    $files[] = $dir.$ds.$fileName;
+                $fileType = filetype($dir . $ds . $fileName);
+                if ($fileType == 'dir') {
+                    $files = array_merge($files, self::getDirFiles($dir . $ds . $fileName));
+                } elseif ($fileType == 'file') {
+                    $files[] = $dir . $ds . $fileName;
                 }
             }
             closedir($dir_handle);
@@ -477,23 +479,23 @@ class Helper
      */
     public static function delDir($dir)
     {
-        if(!is_dir($dir)) return false;
+        if (!is_dir($dir)) return false;
         //先删除目录下的文件
         $handle = opendir($dir);
-        while($file = readdir($handle)){
-            if($file != '.' && $file != '..'){
-                $filePath = $dir.DIRECTORY_SEPARATOR.$file;
-                if(!is_dir($filePath)){
+        while ($file = readdir($handle)) {
+            if ($file != '.' && $file != '..') {
+                $filePath = $dir . DIRECTORY_SEPARATOR . $file;
+                if (!is_dir($filePath)) {
                     unlink($filePath);
-                }else{
+                } else {
                     self::delDir($filePath);
                 }
             }
         }
         closedir($handle);
-        if(rmdir($dir)){
+        if (rmdir($dir)) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -507,13 +509,13 @@ class Helper
         echo "<script type='text/javascript'>location.href='{$url}';</script>";
         exit;
     }
-    
+
     /**
      * JS弹窗并且跳转
      * @param $message
      * @param $url
      */
-    public static function alertLocation($message,$url)
+    public static function alertLocation($message, $url)
     {
         echo "<script type='text/javascript'>alert('$message');location.href='$url';</script>";
         exit;
@@ -557,15 +559,15 @@ class Helper
     public static function htmlString($data)
     {
         $string = '';
-        if(is_array($data)){
+        if (is_array($data)) {
             foreach ($data as $key => $value) {
                 $string[$key] = self::htmlString($value);
             }
-        }elseif(is_object($data)){
+        } elseif (is_object($data)) {
             foreach ($data as $key => $value) {
                 $string->$key = self::htmlString($value);
             }
-        }else{
+        } else {
             $string = htmlspecialchars($data);
         }
         return $string;
@@ -587,7 +589,7 @@ class Helper
      */
     public static function clearSession()
     {
-        if(session_start()){
+        if (session_start()) {
             session_destroy();
         }
     }
@@ -599,32 +601,32 @@ class Helper
     public static function getRealIp()
     {
         static $realIp = null;
-        if($realIp !== null) return $realIp;
-        if(isset($_SERVER)){
-            if(isset($_SERVER['HTTP_X_FORWARDED_FOR'])){
-                $arr = explode(',',$_SERVER['HTTP_X_FORWARDED_FOR']);
+        if ($realIp !== null) return $realIp;
+        if (isset($_SERVER)) {
+            if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+                $arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
                 foreach ($arr as $ip) {
                     $ip = trim($ip);
-                    if($ip != 'unknown'){
+                    if ($ip != 'unknown') {
                         $realIp = $ip;
                         break;
                     }
                 }
-            }elseif(isset($_SERVER['HTTP_CLIENT_IP'])){
+            } elseif (isset($_SERVER['HTTP_CLIENT_IP'])) {
                 $realIp = $_SERVER['HTTP_CLIENT_IP'];
-            }else{
+            } else {
                 $realIp = '0.0.0.0';
             }
-        }else{
-            if(getenv('HTTP_X_FORWARDED_FOR')){
+        } else {
+            if (getenv('HTTP_X_FORWARDED_FOR')) {
                 $realIp = $_SERVER['HTTP_X_FORWARDED_FOR'];
-            }elseif(getenv('HTTP_CLIENT_IP')){
+            } elseif (getenv('HTTP_CLIENT_IP')) {
                 $realIp = $_SERVER['HTTP_CLIENT_IP'];
-            }else{
+            } else {
                 $realIp = getenv('REMOTE_ADDR');
             }
         }
-        preg_match('/[\d\.]{7,15}/',$realIp,$onlineIp);
+        preg_match('/[\d\.]{7,15}/', $realIp, $onlineIp);
         $realIp = !empty($onlineIp[0]) ? $onlineIp[0] : '0.0.0.0';
         return $realIp;
     }
@@ -644,40 +646,40 @@ class Helper
         //图像高度
         $pic_height = imagesy($im);
         $resize_width_tag = $resize_height_tag = false;
-        if( ($maxWidth && $pic_width > $maxWidth) || ($maxHeight && $pic_height > $maxHeight)){
+        if (($maxWidth && $pic_width > $maxWidth) || ($maxHeight && $pic_height > $maxHeight)) {
             $width_ratio = $height_ratio = $ratio = '';
-            if($maxWidth && $pic_width > $maxWidth){
+            if ($maxWidth && $pic_width > $maxWidth) {
                 $width_ratio = $maxWidth / $pic_width;
                 $resize_width_tag = true;
             }
-            if($maxHeight && $pic_height > $maxHeight){
+            if ($maxHeight && $pic_height > $maxHeight) {
                 $height_ratio = $maxHeight / $pic_height;
                 $resize_height_tag = true;
             }
-            if($resize_width_tag && $resize_height_tag){
-                if($width_ratio < $height_ratio){
+            if ($resize_width_tag && $resize_height_tag) {
+                if ($width_ratio < $height_ratio) {
                     $ratio = $width_ratio;
-                }else{
+                } else {
                     $ratio = $height_ratio;
                 }
             }
-            if($resize_width_tag && !$resize_height_tag) $ratio = $width_ratio;
-            if($resize_height_tag && !$resize_width_tag) $ratio = $height_ratio;
+            if ($resize_width_tag && !$resize_height_tag) $ratio = $width_ratio;
+            if ($resize_height_tag && !$resize_width_tag) $ratio = $height_ratio;
             $new_width = $pic_width * $ratio;
             $new_height = $pic_height * $ratio;
-            if(function_exists("imagecopyresampled")){
-                $new_im = imagecreatetruecolor($new_width,$new_height);
-                imagecopyresampled($new_im,$im,0,0,0,0,$new_width,$new_height,$pic_width,$pic_height);
-            }else{
-                $new_im = imagecreatetruecolor($new_width,$new_height);
-                imagecopyresized($new_im,$im,0,0,0,0,$new_width,$new_height,$pic_width,$pic_height);
+            if (function_exists("imagecopyresampled")) {
+                $new_im = imagecreatetruecolor($new_width, $new_height);
+                imagecopyresampled($new_im, $im, 0, 0, 0, 0, $new_width, $new_height, $pic_width, $pic_height);
+            } else {
+                $new_im = imagecreatetruecolor($new_width, $new_height);
+                imagecopyresized($new_im, $im, 0, 0, 0, 0, $new_width, $new_height, $pic_width, $pic_height);
             }
-            $name = $name.$fileType;
-            imagejpeg($new_im,$name);
+            $name = $name . $fileType;
+            imagejpeg($new_im, $name);
             imagedestroy($new_im);
-        }else{
-            $name = $name.$fileType;
-            imagejpeg($im,$name);
+        } else {
+            $name = $name . $fileType;
+            imagejpeg($im, $name);
         }
     }
 
@@ -687,43 +689,52 @@ class Helper
      */
     public static function downFile($filePath)
     {
-        $filePath = iconv('utf-8','gb2312',$filePath);
-        if(!file_exists($filePath)){
+        $filePath = iconv('utf-8', 'gb2312', $filePath);
+        if (!file_exists($filePath)) {
             exit('文件不存在!');
         }
         $fileName = basename($filePath);
         $fileSize = filesize($filePath);
-        $fp = fopen($filePath,'r');
+        $fp = fopen($filePath, 'r');
         header("Content-type:application/octet-stream");
         header("Accept-Range:bytes");
         header("Accept-Length:{$fileSize}");
         header("Content-Disposition: attachment;filename={$fileName}");
         $buffer = 1024;
         $fileCount = 0;
-        while(!feof($fp) && ($fileSize-$fileCount > 0)){
-            $fileData = fread($fp,$buffer);
+        while (!feof($fp) && ($fileSize - $fileCount > 0)) {
+            $fileData = fread($fp, $buffer);
             $fileCount += $buffer;
             echo $fileData;
         }
         fclose($fp);
     }
 
-    
-/**
- * 通过Key排序
- * @param $array
- * @param $field
- * @param bool $desc
- * @return mixed
- */
-function sortArrByField(&$array, $field, $desc = true)
-{
-    $fieldArr = array();
-    foreach ($array as $k => $v) {
-        $fieldArr[$k] = $v[$field];
+
+    /**
+     * 通过Key排序
+     * @param $array
+     * @param $field
+     * @param bool $desc
+     * @return mixed
+     */
+    function sortArrByField(&$array, $field, $desc = true)
+    {
+        $fieldArr = array();
+        foreach ($array as $k => $v) {
+            $fieldArr[$k] = $v[$field];
+        }
+        $sort = $desc == false ? SORT_ASC : SORT_DESC;
+        array_multisort($fieldArr, $sort, $array);
+        return $array;
     }
-    $sort = $desc == false ? SORT_ASC : SORT_DESC;
-    array_multisort($fieldArr, $sort, $array);
-    return $array;
-}
+
+    /**
+     * 生成唯一的订单号
+     * @return string
+     */
+    public function buildOrderNo()
+    {
+        return date('Ymd') . substr(implode(null, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
+    }
 }
