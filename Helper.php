@@ -574,6 +574,33 @@ class Helper
     }
 
     /**
+     * 过滤检测提交的值是不是含有SQL注射的字符，防止注射，保护服务器安全
+     * @param $sql
+     */
+    public static function injectCheck($sql)
+    {
+        return preg_match('select|insert|and|or|update|delete|\'|\/\*|\*|\.\.\/|\.\/|union|into|load_file|outfile', $sql);
+    }
+
+    /**
+     * 对提交的编辑内容进行处理
+     * @param $data post提交的数据
+     */
+    public static function daddslashes($data)
+    {
+        if (!get_magic_quotes_gpc()) {
+            if (is_array($data)) {
+                foreach ($data as $key => $value) {
+                    $data[$key] = daddslashes($value);
+                }
+            } else {
+                $data = addslashes($data);
+            }
+        }
+        return $data;
+    }
+
+    /**
      * 数据库输入过滤
      * @param string $data
      * @return string
@@ -738,20 +765,20 @@ class Helper
         return date('Ymd') . substr(implode(null, array_map('ord', str_split(substr(uniqid(), 7, 13), 1))), 0, 8);
     }
 
-     /**
+    /**
      * @param $url 请求网址
      * @param bool $params 请求参数
      * @param int $ispost 请求方式
      * @param int $https https协议
      * @return bool|mixed
      */
-    public function curl($url,$params,$ispost=0,$https=0)
+    public function curl($url, $params, $ispost = 0, $https = 0)
     {
-    	$httpInfo = array();
-    	$ch = curl_init();
-    	curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-    	curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; WOW64)');
-    	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+        $httpInfo = array();
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; WOW64)');
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
         curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
         if ($https) {
@@ -762,12 +789,12 @@ class Helper
             curl_setopt($ch, CURLOPT_POST, TRUE);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
             curl_setopt($ch, CURLOPT_URL, $url);
-        }else{
+        } else {
             if ($params) {
                 if (is_array($params)) {
                     $params = http_build_query($params);
                     curl_setopt($ch, CURLOPT_URL, $url . '?' . $params);
-                }else{
+                } else {
                     curl_setopt($ch, CURLOPT_URL, $url);
                 }
             }
@@ -777,8 +804,8 @@ class Helper
         if ($response === false) {
             return false;
         }
-        $httpCode = curl_getinfo($ch,CURLINFO_HTTP_CODE);
-        $httpInfo = array_merge($httpInfo,curl_getinfo($ch));
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $httpInfo = array_merge($httpInfo, curl_getinfo($ch));
         curl_close($ch);
         return $response;
     }
