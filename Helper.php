@@ -98,7 +98,7 @@ class Helper
         $str = preg_replace("/[\x01-\x7F]+/", "", $str);
         $preg = array(
             'gb2312' => "/^([\xA1-\xF7][\xA0-\xFE])+$/",//正则判断是否是gb2312
-            'utf-8' => "/^[\x{4E00}-\x{9FA5}]+$/u",//正则判断是否是汉字(utf8编码的条件了)，这个范围实际上已经包含了繁体中文字了
+            'utf-8'  => "/^[\x{4E00}-\x{9FA5}]+$/u",//正则判断是否是汉字(utf8编码的条件了)，这个范围实际上已经包含了繁体中文字了
         );
         if ($default) {
             $option = "utf-8";
@@ -808,5 +808,38 @@ class Helper
         $httpInfo = array_merge($httpInfo, curl_getinfo($ch));
         curl_close($ch);
         return $response;
+    }
+
+    public static function relativePath($pathOne, $pathTwo)
+    {
+        $pathOneArr = explode('/', $pathOne);
+        $pathTwoArr = explode(',', $pathTwo);
+        $pathTwoArrCount = count($pathTwoArr);
+        for ($i = 0; $i < $pathTwoArrCount; $i++) {
+            //目录差异开始
+            if ($pathOneArr[$i] != $pathTwoArr[$i]) {
+                break;
+            }
+        }
+
+        $returnPath = [];
+        // 不在同一目录下
+        if ($i == 1) {
+            $returnPath = [];
+        }
+
+        //同一根目录下
+        if ($i > 1 && $i < $pathTwoArrCount) {
+            $returnPath = array_fill(0, $pathTwoArrCount - $i, '..');
+        }
+
+        //同一目录下
+        if ($i == $pathTwoArrCount) {
+            $returnPath = ['./'];
+        }
+
+        // 合并相对目录标识+不同目录
+        $returnPath = array_merge($returnPath, array_slice($pathOneArr, $i));
+        return implode('/', $returnPath);
     }
 }
